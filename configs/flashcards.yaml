@@ -427,3 +427,36 @@ tools:
         flag: "--yes"
     output:
       type: json
+
+  # Combined submit and get next - for efficient quiz flow
+  - name: quiz_submit_and_next
+    description: Submit answer with confidence rating and immediately get the next quiz item. Combines submit and get-next operations for smoother quiz flow.
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "submit-and-next"
+      - name: session_id
+        description: The active quiz session ID
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: item_id
+        description: The flashcard ID that was just answered
+        type: string
+        required: true
+        positional: true
+        position: 2
+      - name: confidence
+        description: Confidence rating from 1 (forgot) to 5 (perfect)
+        type: integer
+        required: true
+        positional: true
+        position: 3
+        min: 1
+        max: 5
+    output:
+      type: json
