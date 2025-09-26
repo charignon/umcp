@@ -37,10 +37,13 @@ func (b *CommandBuilder) BuildCommand(cfg *config.Config, tool *config.Tool, arg
 	for _, arg := range positionalArgs {
 		value, exists := args[arg.Name]
 		if !exists {
-			if arg.Required {
+			if arg.Default != nil {
+				value = arg.Default
+			} else if arg.Required {
 				return nil, fmt.Errorf("required argument %s not provided", arg.Name)
+			} else {
+				continue
 			}
-			continue
 		}
 
 		strVal, err := b.formatValue(arg.Type, value)
