@@ -33,6 +33,7 @@ type Security struct {
 	BlockedCommands  []string `yaml:"blocked_commands"`
 	MaxOutputSize    int64    `yaml:"max_output_size"`
 	RateLimit        string   `yaml:"rate_limit"`
+	DisableInjectionCheck bool `yaml:"disable_injection_check"` // Allow disabling injection detection for trusted tools
 }
 
 // Tool represents a single MCP tool that wraps a CLI command

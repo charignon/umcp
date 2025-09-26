@@ -232,18 +232,23 @@ func (s *Sandbox) ValidateCommand(cmdParts []string, security *config.Security) 
 		return fmt.Errorf("command '%s' is blocked", cmd)
 	}
 
-	// Check for common injection patterns
-	for _, part := range cmdParts {
-		if s.hasInjectionPattern(part) {
-			return fmt.Errorf("potential command injection detected")
+	// Check for common injection patterns (unless explicitly disabled)
+	if !security.DisableInjectionCheck {
+		for _, part := range cmdParts {
+			if pattern := s.findInjectionPattern(part); pattern != "" {
+				return fmt.Errorf("potential command injection detected\n\nPattern found: %s\nIn content: %s\n\nThis security check prevents shell injection attacks.\nIf this is a false positive (e.g., writing documentation with code examples),\nyou can disable this check by adding to your UMCP config YAML:\n\nsecurity:\n  disable_injection_check: true\n\nOnly do this for trusted tools that handle user text content.",
+					pattern, part)
+			}
 		}
 	}
 
-	// Validate file paths
-	for _, part := range cmdParts[1:] {
-		if s.looksLikeFilePath(part) {
-			if !config.IsPathAllowed(part, security.AllowedPaths) {
-				return fmt.Errorf("path '%s' is not in allowed paths", part)
+	// Validate file paths (skip if injection check is disabled - for text content tools)
+	if !security.DisableInjectionCheck {
+		for _, part := range cmdParts[1:] {
+			if s.looksLikeFilePath(part) {
+				if !config.IsPathAllowed(part, security.AllowedPaths) {
+					return fmt.Errorf("path '%s' is not in allowed paths", part)
+				}
 			}
 		}
 	}
@@ -251,8 +256,9 @@ func (s *Sandbox) ValidateCommand(cmdParts []string, security *config.Security) 
 	return nil
 }
 
-// hasInjectionPattern checks for common injection patterns
-func (s *Sandbox) hasInjectionPattern(input string) bool {
+// findInjectionPattern checks for common injection patterns and returns the pattern found
+func (s *Sandbox) findInjectionPattern(input string) string {
+	// Original aggressive patterns - keep for backward compatibility
 	dangerousPatterns := []string{
 		"$(", "`", "&&", "||", ";", "|", ">", "<", ">>", "<<",
 		"\n", "\r", "$IFS", "${IFS}",
@@ -260,10 +266,15 @@ func (s *Sandbox) hasInjectionPattern(input string) bool {
 
 	for _, pattern := range dangerousPatterns {
 		if strings.Contains(input, pattern) {
-			return true
+			return pattern
 		}
 	}
-	return false
+	return ""
+}
+
+// hasInjectionPattern checks for common injection patterns (legacy, kept for compatibility)
+func (s *Sandbox) hasInjectionPattern(input string) bool {
+	return s.findInjectionPattern(input) != ""
 }
 
 // looksLikeFilePath checks if a string looks like a file path
