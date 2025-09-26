@@ -99,3 +99,30 @@ type ContentItem struct {
 	Type string `json:"type"`
 	Text string `json:"text"`
 }
+
+type PromptsListResult struct {
+	Prompts []PromptInfo `json:"prompts"`
+}
+
+type PromptInfo struct {
+	Name        string      `json:"name"`
+	Description string      `json:"description,omitempty"`
+	Arguments   []PromptArgument `json:"arguments,omitempty"`
+}
+
+type PromptArgument struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Required    bool   `json:"required,omitempty"`
+}
+
+type ResourcesListResult struct {
+	Resources []ResourceInfo `json:"resources"`
+}
+
+type ResourceInfo struct {
+	URI         string `json:"uri"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	MimeType    string `json:"mimeType,omitempty"`
+}

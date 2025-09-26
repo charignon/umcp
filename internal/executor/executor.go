@@ -15,10 +15,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+// Tracer interface for command tracing
+type Tracer interface {
+	TraceCommand(command string, args []string, workingDir string, env []string)
+	TraceCommandOutput(output string, exitCode int, err error)
+}
+
 // CommandExecutor executes CLI commands with sandboxing
 type CommandExecutor struct {
 	builder *CommandBuilder
 	sandbox *Sandbox
+	tracer  Tracer
 }
 
 // NewCommandExecutor creates a new command executor
@@ -26,7 +33,13 @@ func NewCommandExecutor() *CommandExecutor {
 	return &CommandExecutor{
 		builder: NewCommandBuilder(),
 		sandbox: NewSandbox(),
+		tracer:  nil, // Will be set by SetTracer
 	}
+}
+
+// SetTracer sets the tracer for command execution
+func (e *CommandExecutor) SetTracer(tracer Tracer) {
+	e.tracer = tracer
 }
 
 // Execute runs a command and returns the output
@@ -76,6 +89,11 @@ func (e *CommandExecutor) Execute(cfg *config.Config, tool *config.Tool, args ma
 		Str("workingDir", workingDir).
 		Msg("Executing command")
 
+	// Trace command execution
+	if e.tracer != nil {
+		e.tracer.TraceCommand(cmdParts[0], cmdParts[1:], workingDir, cmd.Env)
+	}
+
 	// Run the command
 	err = cmd.Run()
 
@@ -94,6 +112,20 @@ func (e *CommandExecutor) Execute(cfg *config.Config, tool *config.Tool, args ma
 	if cfg.Security.MaxOutputSize > 0 && int64(len(output)) > cfg.Security.MaxOutputSize {
 		output = output[:cfg.Security.MaxOutputSize]
 		output += "\n... (output truncated)"
+	}
+
+	// Trace command output
+	exitCode := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+	}
+
+	if e.tracer != nil {
+		e.tracer.TraceCommandOutput(output, exitCode, err)
 	}
 
 	// If command failed, include error info

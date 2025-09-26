@@ -25,6 +25,9 @@ func main() {
 		validateOnly    bool
 		testMode        bool
 		showVersion     bool
+		debugMode       bool
+		debugTrace      string
+		replayTrace     string
 	)
 
 	flag.Var(&configPaths, "config", "Path to YAML configuration file (can be specified multiple times)")
@@ -35,6 +38,9 @@ func main() {
 	flag.BoolVar(&validateOnly, "validate", false, "Validate configuration only")
 	flag.BoolVar(&testMode, "test", false, "Run in test mode")
 	flag.BoolVar(&showVersion, "version", false, "Show version")
+	flag.BoolVar(&debugMode, "debug", false, "Enable debug mode with message tracing")
+	flag.StringVar(&debugTrace, "debug-trace", "", "File to save debug trace (enables debug mode)")
+	flag.StringVar(&replayTrace, "replay-trace", "", "File to replay debug trace from")
 	flag.Parse()
 
 	if showVersion {
@@ -70,8 +76,17 @@ func main() {
 		os.Exit(0)
 	}
 
+	// Enable debug mode if specified
+	if debugTrace != "" {
+		debugMode = true
+	}
+
 	// Create and run MCP server
-	server := mcp.NewServer(configs)
+	server := mcp.NewServer(configs, mcp.ServerOptions{
+		DebugMode:   debugMode,
+		DebugTrace:  debugTrace,
+		ReplayTrace: replayTrace,
+	})
 
 	if testMode {
 		log.Info().Msg("Running in test mode")

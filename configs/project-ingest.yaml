@@ -1,0 +1,72 @@
+version: "1.0"
+metadata:
+  name: project-ingest
+  description: Analyze project directories and generate comprehensive summaries
+  version: 1.0.0
+
+settings:
+  command: /Users/laurent/bin/project-ingest
+  working_dir: "."
+  timeout: 60s
+
+security:
+  allowed_paths:
+    - ~/repos
+    - ~/bin
+    - ~/Documents
+    - ~/Desktop
+    - /tmp
+  max_output_size: 52428800  # 50MB for large project analysis
+
+tools:
+  - name: analyze_project
+    description: Analyze a project directory and generate a comprehensive summary including file structure, important files, and optionally aggregate content
+    arguments:
+      - name: path
+        description: Path to the project directory to analyze
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: python
+        description: Include Python files
+        type: boolean
+        flag: "-python"
+      - name: golang
+        description: Include Go files
+        type: boolean
+        flag: "-golang"
+      - name: clojure
+        description: Include Clojure files
+        type: boolean
+        flag: "-clojure"
+      - name: emacs
+        description: Include Emacs Lisp files
+        type: boolean
+        flag: "-emacs"
+      - name: javascript
+        description: Include JavaScript/TypeScript files
+        type: boolean
+        flag: "-javascript"
+      - name: rust
+        description: Include Rust files
+        type: boolean
+        flag: "-rust"
+      - name: max_files
+        description: Maximum number of files to process (default 30)
+        type: integer
+        flag: "-max-files"
+        min: 1
+        max: 1000
+      - name: preview_lines
+        description: Number of lines to preview for each file (default 10)
+        type: integer
+        flag: "-preview-lines"
+        min: 1
+        max: 100
+      - name: aggregate
+        description: Include full aggregated file contents
+        type: boolean
+        flag: "-aggregate"
+    output:
+      type: raw

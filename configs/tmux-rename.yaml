@@ -1,0 +1,48 @@
+version: "1.0"
+metadata:
+  name: tmux-rename
+  description: Rename tmux sessions and windows
+  version: 1.0.0
+
+settings:
+  command: /Users/laurent/bin/tmux-rename
+  working_dir: "."
+  timeout: 5s
+
+security:
+  max_output_size: 1048576
+
+tools:
+  - name: rename_session
+    description: Rename the current tmux session to describe what you're working on (max 15 chars)
+    command: session
+    arguments:
+      - name: name
+        description: New name for the tmux session (must be 15 characters or less)
+        type: string
+        positional: true
+        position: 0
+        required: true
+        max_length: 15
+    output:
+      type: raw
+
+  - name: rename_window
+    description: Rename a tmux window to describe the current task (max 15 chars)
+    command: window
+    arguments:
+      - name: name
+        description: New name for the tmux window (must be 15 characters or less)
+        type: string
+        positional: true
+        position: 0
+        required: true
+        max_length: 15
+      - name: window_id
+        description: Window ID to rename (optional, defaults to current window)
+        type: string
+        positional: true
+        position: 1
+        required: false
+    output:
+      type: raw

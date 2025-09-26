@@ -7,9 +7,17 @@ import (
 	"os"
 
 	"github.com/charignon/umcp/internal/config"
+	"github.com/charignon/umcp/internal/debug"
 	"github.com/charignon/umcp/internal/executor"
 	"github.com/rs/zerolog/log"
 )
+
+// ServerOptions contains options for server configuration
+type ServerOptions struct {
+	DebugMode   bool
+	DebugTrace  string
+	ReplayTrace string
+}
 
 // Server represents an MCP server instance
 type Server struct {
@@ -17,15 +25,38 @@ type Server struct {
 	protocol *Protocol
 	executor *executor.CommandExecutor
 	tools    map[string]*config.Tool
+	tracer   *debug.Tracer
 }
 
 // NewServer creates a new MCP server
-func NewServer(configs []*config.Config) *Server {
+func NewServer(configs []*config.Config, opts ServerOptions) *Server {
+	// Setup tracer
+	var tracer *debug.Tracer
+	var err error
+
+	if opts.ReplayTrace != "" {
+		tracer, err = debug.NewReplayTracer(opts.ReplayTrace)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to setup replay tracer")
+		}
+	} else if opts.DebugMode {
+		tracer, err = debug.NewTracer(true, opts.DebugTrace)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to setup debug tracer")
+		}
+	} else {
+		tracer, _ = debug.NewTracer(false, "")
+	}
+
+	exec := executor.NewCommandExecutor()
+	exec.SetTracer(tracer)
+
 	server := &Server{
 		configs:  configs,
 		protocol: NewProtocol(os.Stdin, os.Stdout),
-		executor: executor.NewCommandExecutor(),
+		executor: exec,
 		tools:    make(map[string]*config.Tool),
+		tracer:   tracer,
 	}
 
 	// Index all tools
@@ -44,6 +75,14 @@ func NewServer(configs []*config.Config) *Server {
 func (s *Server) Run() error {
 	log.Info().Msg("MCP server started")
 
+	// Ensure tracer is closed on exit
+	defer func() {
+		if s.tracer != nil {
+			s.tracer.PrintSummary()
+			s.tracer.Close()
+		}
+	}()
+
 	for {
 		req, err := s.protocol.ReadRequest()
 		if err != nil {
@@ -55,8 +94,24 @@ func (s *Server) Run() error {
 			continue
 		}
 
+		// Trace incoming request
+		s.tracer.TraceIncoming("request", req, map[string]interface{}{
+			"method": req.Method,
+			"id":     req.ID,
+		})
+
 		if err := s.handleRequest(req); err != nil {
 			log.Error().Err(err).Msg("Failed to handle request")
+
+			// Trace error response
+			errorResp := map[string]interface{}{
+				"id":    req.ID,
+				"error": err.Error(),
+			}
+			s.tracer.TraceOutgoing("error", errorResp, map[string]interface{}{
+				"original_method": req.Method,
+			})
+
 			s.protocol.SendError(req.ID, InternalError, err.Error(), nil)
 		}
 	}
@@ -71,6 +126,12 @@ func (s *Server) handleRequest(req *Request) error {
 		return s.handleToolsList(req)
 	case "tools/call":
 		return s.handleToolCall(req)
+	case "prompts/list":
+		return s.handlePromptsList(req)
+	case "resources/list":
+		return s.handleResourcesList(req)
+	case "notifications/initialized":
+		return s.handleNotificationInitialized(req)
 	default:
 		return s.protocol.SendError(req.ID, MethodNotFound,
 			fmt.Sprintf("Method not found: %s", req.Method), nil)
@@ -98,6 +159,12 @@ func (s *Server) handleInitialize(req *Request) error {
 			Version: "1.0.0",
 		},
 	}
+
+	// Trace outgoing response
+	s.tracer.TraceOutgoing("response", result, map[string]interface{}{
+		"method": "initialize",
+		"id":     req.ID,
+	})
 
 	return s.protocol.SendResult(req.ID, result)
 }
@@ -146,7 +213,16 @@ func (s *Server) handleToolsList(req *Request) error {
 		}
 	}
 
-	return s.protocol.SendResult(req.ID, ToolsListResult{Tools: tools})
+	result := ToolsListResult{Tools: tools}
+
+	// Trace outgoing response
+	s.tracer.TraceOutgoing("response", result, map[string]interface{}{
+		"method":     "tools/list",
+		"id":         req.ID,
+		"tool_count": len(tools),
+	})
+
+	return s.protocol.SendResult(req.ID, result)
 }
 
 // handleToolCall handles the tools/call request
@@ -180,24 +256,96 @@ func (s *Server) handleToolCall(req *Request) error {
 		return s.protocol.SendError(req.ID, InternalError, "Configuration not found", nil)
 	}
 
+	// Trace command execution details
+	s.tracer.TraceIncoming("tool_call", params, map[string]interface{}{
+		"tool_name": params.Name,
+		"config":    toolConfig.Metadata.Name,
+	})
+
 	// Execute the command
 	output, err := s.executor.Execute(toolConfig, tool, params.Arguments)
+
 	if err != nil {
-		return s.protocol.SendResult(req.ID, ToolCallResult{
+		result := ToolCallResult{
 			Content: []ContentItem{{
 				Type: "text",
 				Text: fmt.Sprintf("Command failed: %v", err),
 			}},
 			IsError: true,
+		}
+
+		// Trace error result
+		s.tracer.TraceOutgoing("tool_error", result, map[string]interface{}{
+			"method":    "tools/call",
+			"id":        req.ID,
+			"tool_name": params.Name,
+			"error":     err.Error(),
 		})
+
+		return s.protocol.SendResult(req.ID, result)
 	}
 
-	return s.protocol.SendResult(req.ID, ToolCallResult{
+	result := ToolCallResult{
 		Content: []ContentItem{{
 			Type: "text",
 			Text: output,
 		}},
+	}
+
+	// Trace successful result
+	s.tracer.TraceOutgoing("tool_result", result, map[string]interface{}{
+		"method":      "tools/call",
+		"id":          req.ID,
+		"tool_name":   params.Name,
+		"output_size": len(output),
 	})
+
+	return s.protocol.SendResult(req.ID, result)
+}
+
+// handlePromptsList handles the prompts/list request
+func (s *Server) handlePromptsList(req *Request) error {
+	// UMCP currently doesn't support prompts, so return empty list
+	result := PromptsListResult{
+		Prompts: []PromptInfo{},
+	}
+
+	// Trace outgoing response
+	s.tracer.TraceOutgoing("response", result, map[string]interface{}{
+		"method": "prompts/list",
+		"id":     req.ID,
+		"count":  0,
+	})
+
+	return s.protocol.SendResult(req.ID, result)
+}
+
+// handleResourcesList handles the resources/list request
+func (s *Server) handleResourcesList(req *Request) error {
+	// UMCP currently doesn't support resources, so return empty list
+	result := ResourcesListResult{
+		Resources: []ResourceInfo{},
+	}
+
+	// Trace outgoing response
+	s.tracer.TraceOutgoing("response", result, map[string]interface{}{
+		"method": "resources/list",
+		"id":     req.ID,
+		"count":  0,
+	})
+
+	return s.protocol.SendResult(req.ID, result)
+}
+
+// handleNotificationInitialized handles the notifications/initialized notification
+func (s *Server) handleNotificationInitialized(req *Request) error {
+	// Trace the notification
+	s.tracer.TraceIncoming("notification", req, map[string]interface{}{
+		"method": "notifications/initialized",
+	})
+
+	// Notifications don't require a response - just return nil
+	return nil
 }
 
 // mapArgTypeToJSONSchema maps argument types to JSON Schema types
