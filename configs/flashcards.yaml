@@ -1,0 +1,429 @@
+version: "1.0"
+metadata:
+  name: flashcards
+  description: Spaced Repetition Flashcard System (memories-clojure)
+  version: 1.0.0
+
+settings:
+  command: bb
+  working_dir: ~/repos/memories-clojure  # Update to your memories-clojure path
+  timeout: 30s
+  environment:
+    - FLASHCARDS_DIR=~/.flashcards
+
+security:
+  allowed_paths:
+    - ~/.flashcards
+    - ~/repos/memories-clojure
+  blocked_commands:
+    - rm
+    - sudo
+  max_output_size: 10485760
+
+tools:
+  # Create a new flashcard
+  - name: flashcard_create
+    description: Create a new flashcard item for spaced repetition learning
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "new"
+      - name: question
+        description: The question or prompt for the flashcard
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: answer
+        description: The answer or response for the flashcard
+        type: string
+        required: true
+        positional: true
+        position: 2
+      - name: project
+        description: Project to organize this flashcard under
+        type: string
+        flag: "--project"
+      - name: tags
+        description: Comma-separated tags for categorization
+        type: string
+        flag: "--tags"
+      - name: notes
+        description: Additional notes or context
+        type: string
+        flag: "--notes"
+      - name: algorithm
+        description: Spaced repetition algorithm (sm2, leitner, fixed)
+        type: string
+        flag: "--algorithm"
+        default: "sm2"
+    output:
+      type: json
+
+  # Review a flashcard with confidence rating
+  - name: flashcard_review
+    description: Mark a flashcard with confidence rating (1-5) after review
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "review"
+      - name: id
+        description: Flashcard ID to review
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: confidence
+        description: Confidence rating from 1 (forgot) to 5 (perfect)
+        type: integer
+        required: true
+        positional: true
+        position: 2
+        min: 1
+        max: 5
+    output:
+      type: json
+
+  # Update flashcard content
+  - name: flashcard_update
+    description: Update the content of an existing flashcard
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "update"
+      - name: id
+        description: Flashcard ID to update
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: question
+        description: New question (optional)
+        type: string
+        flag: "--question"
+      - name: answer
+        description: New answer (optional)
+        type: string
+        flag: "--answer"
+      - name: project
+        description: New project (optional)
+        type: string
+        flag: "--project"
+      - name: tags
+        description: New tags (optional)
+        type: string
+        flag: "--tags"
+      - name: notes
+        description: New notes (optional)
+        type: string
+        flag: "--notes"
+    output:
+      type: json
+
+  # Delete a flashcard
+  - name: flashcard_delete
+    description: Delete a flashcard permanently
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "delete"
+      - name: id
+        description: Flashcard ID to delete
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: force
+        description: Skip confirmation
+        type: boolean
+        flag: "--force"
+    output:
+      type: json
+
+  # List flashcards with filters
+  - name: flashcard_list
+    description: List flashcards with optional filters
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "list"
+      - name: project
+        description: Filter by project name
+        type: string
+        flag: "--project"
+      - name: tags
+        description: Filter by tags (comma-separated)
+        type: string
+        flag: "--tags"
+      - name: limit
+        description: Maximum number of items to return
+        type: integer
+        flag: "--limit"
+        default: 50
+      - name: due
+        description: Only show items due for review
+        type: boolean
+        flag: "--due"
+      - name: format
+        description: Output format (json, table, org)
+        type: string
+        flag: "--format"
+        default: "json"
+    output:
+      type: json
+
+  # Get quiz items (due for review)
+  - name: quiz_get
+    description: Get flashcards that are due for review based on spaced repetition
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "quiz"
+      - name: project
+        description: Filter by project
+        type: string
+        flag: "--project"
+      - name: limit
+        description: Maximum number of items
+        type: integer
+        flag: "--limit"
+        default: 10
+      - name: algorithm
+        description: Filter by algorithm type
+        type: string
+        flag: "--algorithm"
+      - name: interactive
+        description: Start interactive quiz mode
+        type: boolean
+        flag: "--interactive"
+    output:
+      type: json
+
+  # Bulk review multiple flashcards
+  - name: flashcard_bulk_review
+    description: Review multiple flashcards at once with confidence ratings
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "bulk-review"
+      - name: reviews
+        description: JSON array of {id, confidence} pairs
+        type: string
+        required: true
+        flag: "--reviews"
+    output:
+      type: json
+
+  # List all projects
+  - name: project_list
+    description: List all available flashcard projects
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "projects"
+      - name: stats
+        description: Include statistics for each project
+        type: boolean
+        flag: "--stats"
+    output:
+      type: json
+
+  # Get learning statistics
+  - name: stats_get
+    description: Get learning statistics and progress metrics
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "stats"
+      - name: project
+        description: Filter stats by project
+        type: string
+        flag: "--project"
+      - name: period
+        description: Time period (today, week, month, all)
+        type: string
+        flag: "--period"
+        default: "all"
+      - name: format
+        description: Output format (json, table, chart)
+        type: string
+        flag: "--format"
+        default: "json"
+    output:
+      type: json
+
+  # Configure spaced repetition algorithm
+  - name: algorithm_configure
+    description: Configure spaced repetition algorithm settings
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "algorithm"
+      - name: type
+        description: Algorithm type (sm2, leitner, fixed)
+        type: string
+        required: true
+        flag: "--type"
+      - name: ease_factor
+        description: Initial ease factor for SM-2 (default 2.5)
+        type: float
+        flag: "--ease-factor"
+      - name: intervals
+        description: Custom intervals for fixed algorithm (comma-separated days)
+        type: string
+        flag: "--intervals"
+      - name: boxes
+        description: Number of boxes for Leitner system
+        type: integer
+        flag: "--boxes"
+        min: 3
+        max: 10
+    output:
+      type: json
+
+  # Export flashcards
+  - name: flashcard_export
+    description: Export flashcards to various formats
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "export"
+      - name: format
+        description: Export format (json, csv, anki, org)
+        type: string
+        required: true
+        flag: "--format"
+      - name: project
+        description: Export only specific project
+        type: string
+        flag: "--project"
+      - name: output
+        description: Output file path
+        type: string
+        flag: "--output"
+    output:
+      type: raw
+
+  # Import flashcards
+  - name: flashcard_import
+    description: Import flashcards from various formats
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "import"
+      - name: file
+        description: File to import from
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: format
+        description: Import format (json, csv, anki, org)
+        type: string
+        flag: "--format"
+      - name: project
+        description: Project to import into
+        type: string
+        flag: "--project"
+      - name: merge
+        description: Merge with existing flashcards
+        type: boolean
+        flag: "--merge"
+    output:
+      type: json
+
+  # Search flashcards
+  - name: flashcard_search
+    description: Search flashcards by content
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "search"
+      - name: query
+        description: Search query
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: project
+        description: Limit search to project
+        type: string
+        flag: "--project"
+      - name: field
+        description: Search in specific field (question, answer, notes, all)
+        type: string
+        flag: "--field"
+        default: "all"
+      - name: limit
+        description: Maximum results
+        type: integer
+        flag: "--limit"
+        default: 20
+    output:
+      type: json
+
+  # Reset flashcard progress
+  - name: flashcard_reset
+    description: Reset learning progress for flashcards
+    command: flashcards
+    arguments:
+      - name: action
+        type: string
+        positional: true
+        position: 0
+        default: "reset"
+      - name: id
+        description: Flashcard ID to reset (or 'all' for all cards)
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: project
+        description: Reset all cards in project
+        type: string
+        flag: "--project"
+      - name: confirm
+        description: Skip confirmation
+        type: boolean
+        flag: "--yes"
+    output:
+      type: json

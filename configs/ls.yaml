@@ -1,0 +1,67 @@
+version: "1.0"
+metadata:
+  name: ls
+  description: List directory contents
+  version: 1.0.0
+
+settings:
+  command: ls
+  working_dir: "."
+  timeout: 10s
+
+security:
+  max_output_size: 10485760
+
+tools:
+  - name: list
+    description: List files and directories
+    arguments:
+      - name: path
+        description: Directory path to list
+        type: string
+        positional: true
+        position: 0
+        default: "."
+      - name: all
+        description: Show all files including hidden
+        type: boolean
+        flag: "-a"
+      - name: long
+        description: Use long format
+        type: boolean
+        flag: "-l"
+      - name: human
+        description: Human readable sizes
+        type: boolean
+        flag: "-h"
+      - name: sort_time
+        description: Sort by modification time
+        type: boolean
+        flag: "-t"
+      - name: reverse
+        description: Reverse sort order
+        type: boolean
+        flag: "-r"
+      - name: recursive
+        description: List subdirectories recursively
+        type: boolean
+        flag: "-R"
+    output:
+      type: lines
+
+  - name: count
+    description: Count files in directory
+    command: ""
+    arguments:
+      - name: path
+        description: Directory path
+        type: string
+        positional: true
+        position: 0
+        default: "."
+      - name: all
+        description: Include hidden files
+        type: boolean
+        flag: "-a"
+    output:
+      type: lines

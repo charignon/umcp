@@ -1,0 +1,36 @@
+# Binary
+umcp
+/umcp
+
+# Go build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go coverage
+*.coverprofile
+coverage.out
+coverage.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+test/*.log
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp

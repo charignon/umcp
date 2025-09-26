@@ -1,0 +1,266 @@
+version: "1.0"
+metadata:
+  name: docker
+  description: Docker container management
+  version: 24.0.0
+
+settings:
+  command: docker
+  working_dir: "."
+  timeout: 60s
+
+security:
+  blocked_commands:
+    - rm
+    - sudo
+  max_output_size: 10485760
+
+tools:
+  - name: ps
+    description: List containers
+    command: ps
+    arguments:
+      - name: all
+        description: Show all containers (including stopped)
+        type: boolean
+        flag: "--all"
+      - name: quiet
+        description: Only display container IDs
+        type: boolean
+        flag: "--quiet"
+      - name: format
+        description: Pretty-print containers using a Go template
+        type: string
+        flag: "--format"
+    output:
+      type: lines
+
+  - name: images
+    description: List images
+    command: images
+    arguments:
+      - name: all
+        description: Show all images (including intermediate)
+        type: boolean
+        flag: "--all"
+      - name: quiet
+        description: Only display image IDs
+        type: boolean
+        flag: "--quiet"
+      - name: format
+        description: Pretty-print images using a Go template
+        type: string
+        flag: "--format"
+    output:
+      type: lines
+
+  - name: run
+    description: Run a command in a new container
+    command: run
+    arguments:
+      - name: image
+        description: Docker image to run
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: command
+        description: Command to run
+        type: string
+        positional: true
+        position: 1
+      - name: detach
+        description: Run container in background
+        type: boolean
+        flag: "--detach"
+      - name: interactive
+        description: Keep STDIN open
+        type: boolean
+        flag: "--interactive"
+      - name: tty
+        description: Allocate a pseudo-TTY
+        type: boolean
+        flag: "--tty"
+      - name: rm
+        description: Remove container after it exits
+        type: boolean
+        flag: "--rm"
+      - name: name
+        description: Container name
+        type: string
+        flag: "--name"
+      - name: env
+        description: Environment variables
+        type: array
+        flag: "--env"
+      - name: volume
+        description: Volume mounts
+        type: array
+        flag: "--volume"
+      - name: port
+        description: Port mappings
+        type: array
+        flag: "--publish"
+    output:
+      type: raw
+
+  - name: stop
+    description: Stop running containers
+    command: stop
+    arguments:
+      - name: containers
+        description: Container names or IDs
+        type: array
+        required: true
+        positional: true
+        position: 0
+      - name: time
+        description: Seconds to wait before killing
+        type: integer
+        flag: "--time"
+        default: 10
+    output:
+      type: lines
+
+  - name: start
+    description: Start stopped containers
+    command: start
+    arguments:
+      - name: containers
+        description: Container names or IDs
+        type: array
+        required: true
+        positional: true
+        position: 0
+      - name: attach
+        description: Attach to container output
+        type: boolean
+        flag: "--attach"
+      - name: interactive
+        description: Attach STDIN
+        type: boolean
+        flag: "--interactive"
+    output:
+      type: lines
+
+  - name: logs
+    description: Fetch container logs
+    command: logs
+    arguments:
+      - name: container
+        description: Container name or ID
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: follow
+        description: Follow log output
+        type: boolean
+        flag: "--follow"
+      - name: timestamps
+        description: Show timestamps
+        type: boolean
+        flag: "--timestamps"
+      - name: tail
+        description: Number of lines to show from end
+        type: string
+        flag: "--tail"
+      - name: since
+        description: Show logs since timestamp
+        type: string
+        flag: "--since"
+    output:
+      type: raw
+
+  - name: exec
+    description: Execute command in running container
+    command: exec
+    arguments:
+      - name: container
+        description: Container name or ID
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: command
+        description: Command to execute
+        type: string
+        required: true
+        positional: true
+        position: 1
+      - name: interactive
+        description: Keep STDIN open
+        type: boolean
+        flag: "--interactive"
+      - name: tty
+        description: Allocate a pseudo-TTY
+        type: boolean
+        flag: "--tty"
+      - name: detach
+        description: Detached mode
+        type: boolean
+        flag: "--detach"
+      - name: env
+        description: Environment variables
+        type: array
+        flag: "--env"
+      - name: user
+        description: Username or UID
+        type: string
+        flag: "--user"
+      - name: workdir
+        description: Working directory
+        type: string
+        flag: "--workdir"
+    output:
+      type: raw
+
+  - name: build
+    description: Build an image from a Dockerfile
+    command: build
+    arguments:
+      - name: path
+        description: Build context path
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: tag
+        description: Image name and tag
+        type: string
+        flag: "--tag"
+      - name: file
+        description: Dockerfile path
+        type: string
+        flag: "--file"
+      - name: no_cache
+        description: Do not use cache
+        type: boolean
+        flag: "--no-cache"
+      - name: build_arg
+        description: Build arguments
+        type: array
+        flag: "--build-arg"
+      - name: target
+        description: Target build stage
+        type: string
+        flag: "--target"
+    output:
+      type: raw
+
+  - name: inspect
+    description: Display detailed information
+    command: inspect
+    arguments:
+      - name: objects
+        description: Container or image names/IDs
+        type: array
+        required: true
+        positional: true
+        position: 0
+      - name: format
+        description: Format output using Go template
+        type: string
+        flag: "--format"
+    output:
+      type: json

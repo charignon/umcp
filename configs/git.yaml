@@ -1,0 +1,568 @@
+version: "1.0"
+metadata:
+  name: git
+  description: Git version control system MCP interface
+  version: 2.40.0
+  author: MCP Bridge
+
+settings:
+  command: git
+  working_dir: "."
+  timeout: 30s
+  environment:
+    - GIT_PAGER=cat
+    - GIT_NO_PAGING=1
+
+security:
+  allowed_paths:
+    - "."
+    - "/Users/laurent/repos"
+  blocked_commands:
+    - push
+    - force-push
+  max_output_size: 10MB
+  rate_limit: 100/minute
+
+tools:
+  - name: git_status
+    description: Show the working tree status
+    command: status
+    arguments:
+      - name: short
+        description: Give output in short format
+        type: boolean
+        flag: "--short"
+      - name: branch
+        description: Show branch information
+        type: boolean
+        flag: "--branch"
+      - name: porcelain
+        description: Machine-readable output
+        type: boolean
+        flag: "--porcelain"
+    output:
+      type: lines
+
+  - name: git_log
+    description: Show commit logs
+    command: log
+    arguments:
+      - name: format
+        description: Pretty print format (oneline, short, medium, full, fuller, reference, email, raw)
+        type: string
+        flag: "--pretty"
+        default: "oneline"
+      - name: limit
+        description: Limit number of commits to show
+        type: integer
+        flag: "-n"
+        default: 10
+      - name: since
+        description: Show commits more recent than a specific date
+        type: string
+        flag: "--since"
+      - name: author
+        description: Limit commits to those by a specific author
+        type: string
+        flag: "--author"
+      - name: grep
+        description: Limit commits to those with log message matching pattern
+        type: string
+        flag: "--grep"
+    output:
+      type: lines
+
+  - name: git_diff
+    description: Show changes between commits, commit and working tree, etc
+    command: diff
+    arguments:
+      - name: cached
+        description: Show staged changes
+        type: boolean
+        flag: "--cached"
+      - name: stat
+        description: Show diffstat instead of patch
+        type: boolean
+        flag: "--stat"
+      - name: name_only
+        description: Show only names of changed files
+        type: boolean
+        flag: "--name-only"
+      - name: name_status
+        description: Show names and status of changed files
+        type: boolean
+        flag: "--name-status"
+      - name: color
+        description: Show colored diff
+        type: boolean
+        flag: "--color"
+        default: true
+    output:
+      type: raw
+
+  - name: git_add
+    description: Add file contents to the index
+    command: add
+    arguments:
+      - name: files
+        description: Files to add (can be patterns)
+        type: array
+        required: true
+        positional: true
+      - name: all
+        description: Add all tracked and untracked files
+        type: boolean
+        flag: "--all"
+      - name: patch
+        description: Interactively choose hunks of patch
+        type: boolean
+        flag: "--patch"
+      - name: update
+        description: Update tracked files only
+        type: boolean
+        flag: "--update"
+    output:
+      type: raw
+
+  - name: git_commit
+    description: Record changes to the repository
+    command: commit
+    arguments:
+      - name: message
+        description: Commit message
+        type: string
+        required: true
+        flag: "-m"
+      - name: all
+        description: Automatically stage all modified and deleted files
+        type: boolean
+        flag: "--all"
+      - name: amend
+        description: Amend the previous commit
+        type: boolean
+        flag: "--amend"
+      - name: no_edit
+        description: Use previous commit message without editing
+        type: boolean
+        flag: "--no-edit"
+    output:
+      type: lines
+
+  - name: git_branch
+    description: List, create, or delete branches
+    command: branch
+    arguments:
+      - name: list
+        description: List branches (default behavior)
+        type: boolean
+        flag: "--list"
+      - name: all
+        description: List both remote and local branches
+        type: boolean
+        flag: "--all"
+      - name: remote
+        description: List remote branches
+        type: boolean
+        flag: "--remotes"
+      - name: verbose
+        description: Show sha1 and commit subject line
+        type: boolean
+        flag: "--verbose"
+      - name: delete
+        description: Delete a branch
+        type: string
+        flag: "-d"
+      - name: create
+        description: Create a new branch
+        type: string
+        positional: true
+    output:
+      type: lines
+
+  - name: git_checkout
+    description: Switch branches or restore working tree files
+    command: checkout
+    arguments:
+      - name: branch
+        description: Branch name to checkout
+        type: string
+        required: true
+        positional: true
+      - name: create
+        description: Create a new branch and switch to it
+        type: boolean
+        flag: "-b"
+      - name: force
+        description: Force checkout (throw away local modifications)
+        type: boolean
+        flag: "--force"
+    output:
+      type: lines
+
+  - name: git_merge
+    description: Join two or more development histories together
+    command: merge
+    arguments:
+      - name: branch
+        description: Branch to merge
+        type: string
+        required: true
+        positional: true
+      - name: no_ff
+        description: Create a merge commit even when fast-forward is possible
+        type: boolean
+        flag: "--no-ff"
+      - name: squash
+        description: Squash commits into a single commit
+        type: boolean
+        flag: "--squash"
+      - name: message
+        description: Merge commit message
+        type: string
+        flag: "-m"
+    output:
+      type: lines
+
+  - name: git_pull
+    description: Fetch from and integrate with another repository or local branch
+    command: pull
+    arguments:
+      - name: remote
+        description: Remote repository name
+        type: string
+        positional: true
+        default: "origin"
+      - name: branch
+        description: Branch to pull
+        type: string
+        positional: true
+      - name: rebase
+        description: Rebase instead of merge
+        type: boolean
+        flag: "--rebase"
+      - name: no_rebase
+        description: Do not rebase (merge instead)
+        type: boolean
+        flag: "--no-rebase"
+    output:
+      type: lines
+
+  - name: git_fetch
+    description: Download objects and refs from another repository
+    command: fetch
+    arguments:
+      - name: remote
+        description: Remote repository name
+        type: string
+        positional: true
+        default: "origin"
+      - name: all
+        description: Fetch all remotes
+        type: boolean
+        flag: "--all"
+      - name: prune
+        description: Remove remote tracking branches that no longer exist
+        type: boolean
+        flag: "--prune"
+      - name: tags
+        description: Fetch all tags
+        type: boolean
+        flag: "--tags"
+    output:
+      type: lines
+
+  - name: git_reset
+    description: Reset current HEAD to specified state
+    command: reset
+    arguments:
+      - name: mode
+        description: Reset mode (soft, mixed, hard)
+        type: string
+        enum: ["--soft", "--mixed", "--hard"]
+        default: "--mixed"
+      - name: commit
+        description: Commit to reset to
+        type: string
+        positional: true
+        default: "HEAD"
+    output:
+      type: lines
+
+  - name: git_stash
+    description: Stash changes in working directory
+    command: stash
+    arguments:
+      - name: action
+        description: Stash action (push, pop, list, apply, drop, clear)
+        type: string
+        positional: true
+        enum: ["push", "pop", "list", "apply", "drop", "clear"]
+        default: "push"
+      - name: message
+        description: Stash message (for push)
+        type: string
+        flag: "-m"
+      - name: include_untracked
+        description: Include untracked files
+        type: boolean
+        flag: "--include-untracked"
+    output:
+      type: lines
+
+  - name: git_remote
+    description: Manage set of tracked repositories
+    command: remote
+    arguments:
+      - name: verbose
+        description: Show remote URLs
+        type: boolean
+        flag: "-v"
+      - name: action
+        description: Action to perform (add, remove, rename)
+        type: string
+        positional: true
+        enum: ["add", "remove", "rename", "show"]
+      - name: name
+        description: Remote name
+        type: string
+        positional: true
+      - name: url
+        description: Remote URL (for add)
+        type: string
+        positional: true
+    output:
+      type: lines
+
+  - name: git_tag
+    description: Create, list, or delete tags
+    command: tag
+    arguments:
+      - name: list
+        description: List tags
+        type: boolean
+        flag: "--list"
+      - name: create
+        description: Tag name to create
+        type: string
+        positional: true
+      - name: message
+        description: Tag message
+        type: string
+        flag: "-m"
+      - name: annotate
+        description: Create annotated tag
+        type: boolean
+        flag: "-a"
+      - name: delete
+        description: Delete a tag
+        type: string
+        flag: "-d"
+    output:
+      type: lines
+
+  - name: git_show
+    description: Show various types of objects
+    command: show
+    arguments:
+      - name: object
+        description: Object to show (commit, tag, etc)
+        type: string
+        positional: true
+        default: "HEAD"
+      - name: format
+        description: Pretty print format
+        type: string
+        flag: "--pretty"
+      - name: stat
+        description: Show diffstat
+        type: boolean
+        flag: "--stat"
+    output:
+      type: raw
+
+  - name: git_blame
+    description: Show what revision and author last modified each line
+    command: blame
+    arguments:
+      - name: file
+        description: File to blame
+        type: string
+        required: true
+        positional: true
+        validation: file_exists
+      - name: line_range
+        description: Line range (e.g., 10,20)
+        type: string
+        flag: "-L"
+      - name: show_email
+        description: Show author email instead of name
+        type: boolean
+        flag: "-e"
+    output:
+      type: lines
+
+  - name: git_clean
+    description: Remove untracked files from working tree
+    command: clean
+    arguments:
+      - name: force
+        description: Force removal
+        type: boolean
+        flag: "-f"
+        required: true
+      - name: directories
+        description: Remove untracked directories too
+        type: boolean
+        flag: "-d"
+      - name: dry_run
+        description: Show what would be removed
+        type: boolean
+        flag: "-n"
+      - name: ignored
+        description: Remove ignored files too
+        type: boolean
+        flag: "-x"
+    output:
+      type: lines
+
+  - name: git_config
+    description: Get and set repository or global options
+    command: config
+    arguments:
+      - name: list
+        description: List all configuration
+        type: boolean
+        flag: "--list"
+      - name: global
+        description: Use global config file
+        type: boolean
+        flag: "--global"
+      - name: local
+        description: Use repository config file
+        type: boolean
+        flag: "--local"
+      - name: get
+        description: Get value of a key
+        type: string
+        flag: "--get"
+      - name: set
+        description: Set a configuration value (key=value)
+        type: string
+        positional: true
+    output:
+      type: lines
+
+  - name: git_rebase
+    description: Reapply commits on top of another base
+    command: rebase
+    arguments:
+      - name: branch
+        description: Branch to rebase onto
+        type: string
+        required: true
+        positional: true
+      - name: interactive
+        description: Interactive rebase
+        type: boolean
+        flag: "-i"
+      - name: continue
+        description: Continue after resolving conflicts
+        type: boolean
+        flag: "--continue"
+      - name: abort
+        description: Abort rebase
+        type: boolean
+        flag: "--abort"
+      - name: skip
+        description: Skip current commit
+        type: boolean
+        flag: "--skip"
+    output:
+      type: lines
+
+  - name: git_cherry_pick
+    description: Apply changes introduced by existing commits
+    command: cherry-pick
+    arguments:
+      - name: commit
+        description: Commit to cherry-pick
+        type: string
+        required: true
+        positional: true
+      - name: no_commit
+        description: Don't create commit, just apply changes
+        type: boolean
+        flag: "--no-commit"
+      - name: continue
+        description: Continue after resolving conflicts
+        type: boolean
+        flag: "--continue"
+      - name: abort
+        description: Abort cherry-pick
+        type: boolean
+        flag: "--abort"
+    output:
+      type: lines
+
+  - name: git_rev_parse
+    description: Parse revision and other git objects
+    command: rev-parse
+    arguments:
+      - name: abbrev_ref
+        description: Output abbreviated reference name
+        type: boolean
+        flag: "--abbrev-ref"
+      - name: revision
+        description: Revision to parse
+        type: string
+        positional: true
+        default: "HEAD"
+      - name: show_toplevel
+        description: Show absolute path of top-level directory
+        type: boolean
+        flag: "--show-toplevel"
+    output:
+      type: raw
+
+  - name: git_ls_files
+    description: Show information about files in index and working tree
+    command: ls-files
+    arguments:
+      - name: cached
+        description: Show cached files
+        type: boolean
+        flag: "--cached"
+      - name: deleted
+        description: Show deleted files
+        type: boolean
+        flag: "--deleted"
+      - name: modified
+        description: Show modified files
+        type: boolean
+        flag: "--modified"
+      - name: others
+        description: Show untracked files
+        type: boolean
+        flag: "--others"
+      - name: ignored
+        description: Show ignored files
+        type: boolean
+        flag: "--ignored"
+    output:
+      type: lines
+
+  - name: git_reflog
+    description: Show reference logs
+    command: reflog
+    arguments:
+      - name: all
+        description: Show all refs
+        type: boolean
+        flag: "--all"
+      - name: limit
+        description: Limit number of entries
+        type: integer
+        flag: "-n"
+        default: 10
+    output:
+      type: lines
