@@ -4,7 +4,7 @@
 BINARY_NAME=umcp
 GO=go
 GOFLAGS=-v
-LDFLAGS=-ldflags "-s -w"
+LDFLAGS=
 CONFIGS_DIR=configs
 
 # Default target
@@ -44,11 +44,25 @@ clean:
 	@rm -rf coverage.out
 	@echo "Clean complete"
 
-# Install binary to /usr/local/bin
+# Install binary to ~/bin
 install: build
-	@echo "Installing $(BINARY_NAME) to /usr/local/bin..."
-	@sudo cp $(BINARY_NAME) /usr/local/bin/
+	@echo "Installing $(BINARY_NAME) to ~/bin..."
+	@cp $(BINARY_NAME) ~/bin/
 	@echo "Installation complete"
+
+# Install via Homebrew formula (local testing)
+brew-install: build
+	@echo "Installing via Homebrew formula..."
+	@brew install --formula ./umcp.rb
+	@echo "Homebrew installation complete"
+
+# Test release process locally
+test-release:
+	@echo "Testing release process..."
+	@git tag -d v$(VERSION) 2>/dev/null || true
+	@git tag v$(VERSION)
+	@echo "Created local tag v$(VERSION)"
+	@echo "To push: git push origin v$(VERSION)"
 
 # Run the application with a sample config
 run: build

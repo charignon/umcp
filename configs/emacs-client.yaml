@@ -1,0 +1,145 @@
+version: "1.0"
+metadata:
+  name: emacs-client
+  description: Send elisp commands to a running Emacs instance
+  version: 1.0.0
+
+settings:
+  command: emacsclient
+  timeout: 30s
+  environment:
+    - EMACS_SOCKET_NAME=/tmp/emacs1000/server
+
+security:
+  allowed_paths:
+    - ~/
+  max_output_size: 10485760
+
+tools:
+  # Evaluate arbitrary elisp expression
+  - name: eval
+    description: Evaluate an elisp expression in the running Emacs instance and return the result
+    arguments:
+      - name: expression
+        description: The elisp expression to evaluate (e.g., "(+ 1 2)" or "(buffer-name)")
+        type: string
+        required: true
+        flag: "-e"
+    output:
+      type: raw
+
+  # Evaluate elisp without waiting for result
+  - name: eval_no_wait
+    description: Evaluate an elisp expression without waiting for a result (fire and forget)
+    arguments:
+      - name: no_wait
+        description: Don't wait for response
+        type: boolean
+        default: true
+        flag: "-n"
+      - name: expression
+        description: The elisp expression to evaluate
+        type: string
+        required: true
+        flag: "-e"
+    output:
+      type: raw
+
+  # Open a file in Emacs
+  - name: open_file
+    description: Open a file in the running Emacs instance
+    arguments:
+      - name: file_path
+        description: Path to the file to open
+        type: string
+        required: true
+        positional: true
+        position: 0
+      - name: line_number
+        description: Optional line number to jump to
+        type: integer
+        flag: "+"
+    output:
+      type: raw
+
+  # Create a new frame
+  - name: create_frame
+    description: Create a new Emacs frame
+    arguments:
+      - name: create
+        type: boolean
+        default: true
+        flag: "-c"
+    output:
+      type: raw
+
+  # Execute elisp from a file
+  - name: load_file
+    description: Load and execute elisp code from a file
+    arguments:
+      - name: file_path
+        description: Path to elisp file to load
+        type: string
+        required: true
+        flag: "-l"
+    output:
+      type: raw
+
+  # Get buffer list
+  - name: list_buffers
+    description: Get a list of all buffers in Emacs
+    arguments:
+      - name: expression
+        type: string
+        default: "(mapcar 'buffer-name (buffer-list))"
+        flag: "-e"
+    output:
+      type: raw
+
+  # Get current buffer content
+  - name: get_buffer_content
+    description: Get the content of the current or specified buffer
+    arguments:
+      - name: expression
+        type: string
+        default: "(with-current-buffer (current-buffer) (buffer-string))"
+        flag: "-e"
+    output:
+      type: raw
+
+  # Search in Emacs
+  - name: search
+    description: Search for text in the current buffer
+    arguments:
+      - name: pattern
+        description: Search pattern (will be used in elisp search-forward)
+        type: string
+        required: true
+      - name: expression
+        type: string
+        flag: "-e"
+        default: "(search-forward \"${pattern}\" nil t)"
+    output:
+      type: raw
+
+  # Save all buffers
+  - name: save_all
+    description: Save all modified buffers
+    arguments:
+      - name: expression
+        type: string
+        default: "(save-some-buffers t)"
+        flag: "-e"
+    output:
+      type: raw
+
+  # Get Emacs info
+  - name: info
+    description: Get information about the Emacs instance
+    arguments:
+      - name: expression
+        type: string
+        default: "(format \"Emacs %s - %d buffers - %s\" emacs-version (length (buffer-list)) (format-time-string \"%Y-%m-%d %H:%M:%S\"))"
+        flag: "-e"
+    output:
+      type: raw
